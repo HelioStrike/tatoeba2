@@ -29,6 +29,7 @@ namespace App\Controller;
 use App\Controller\AppController;
 use App\Form\SentencesSearchForm;
 use App\Model\CurrentUser;
+use App\Model\Entity\User;
 use App\Model\Table\SentencesTable;
 use App\Lib\LanguagesLib;
 use App\Lib\SphinxClient;
@@ -677,6 +678,11 @@ class SentencesController extends AppController
             return;
         }
 
+        $level = $this->Users->getLevelOfUser($userId);
+        $role = $this->Users->getRoleOfUser($userId);
+        $showUnreliableButton = (CurrentUser::isAdmin() && ($level == -1 || $role == User::ROLE_SPAMMER));
+        $this->set("unreliableButton", $showUnreliableButton);
+
         $this->set("userExists", true);
 
         $onlyOriginal = array_key_exists('only_original', $this->request->getQueryParams());
@@ -828,6 +834,52 @@ class SentencesController extends AppController
         }
     }
 
+    /**
+     * Mark all sentences of a user as incorrect.
+     *
+     * @param string $username Username of the user. 
+     * 
+     * @return void
+     */
+    public function mark_unreliable($username)
+    {   
+        $this->loadModel('Users');
+        $userId = $this->Users->getIdFromUserName($username);
+
+        if(empty($userId)) {
+            $this->set("userExists", false);
+            $this->redirect(
+                array(
+                    "controller" => "sentences",
+                    "action" => "of_user",
+                    $username
+                )
+            );
+            return;
+        }
+
+        $level = $this->Users->getLevelOfUser($userId);
+        $role = $this->Users->getRoleOfUser($userId);
+
+        if (CurrentUser::isAdmin() && ($level == -1 || $role == User::ROLE_SPAMMER)) {
+            $userId = $this->Users->getIdFromUsername($username);
+            $this->Sentences->markUnreliable($userId);
+            $this->redirect(
+                array(
+                    "controller" => "sentences",
+                    "action" => "of_user",
+                    $username
+                )
+            );
+        } else {
+            $this->redirect(
+                array(
+                    "controller" => "pages",
+                    "action" => "home",
+                )
+            );
+        }
+    }
 
     public function edit_audio()
     {

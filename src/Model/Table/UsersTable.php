@@ -466,6 +466,22 @@ class UsersTable extends Table
         return $user->level;
     }
 
+    /**
+     * Return the role of the user of given id.
+     *
+     * @param int $userId Id of the user.
+     *
+     * @return int
+     */
+    public function getRoleOfUser($userId)
+    {
+        $user = $this->find()
+            ->select(['role'])
+            ->where(['id' => $userId])
+            ->first();
+        return $user->role;
+    }
+
     public function updatePasswordVersion($userId, $plainTextPassword)
     {
         $passwordHasher = new VersionedPasswordHasher();
